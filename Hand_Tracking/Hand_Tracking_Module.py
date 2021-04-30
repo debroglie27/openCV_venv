@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 import time
 import numpy as np
+import math
 
 
 class HandDetector:
@@ -35,8 +36,11 @@ class HandDetector:
 
         return img
 
-    def find_position(self, img, hand_num=0, draw=True):
+    def find_position(self, img, hand_num=0, points_draw=False, bbox_draw=True):
+        xList = []
+        yList = []
         self.lm_list = []
+        bbox = ()
 
         if self.results.multi_hand_landmarks:
             # Finding Position of given Hand
@@ -46,12 +50,22 @@ class HandDetector:
                 h, w, c = img.shape
                 # Pixel Position for corresponding landmark
                 cx, cy = int(lm.x * w), int(lm.y * h)
+
+                xList.append(cx)
+                yList.append(cy)
                 self.lm_list.append([_id, cx, cy])
 
-                if draw:
+                if points_draw:
                     cv2.circle(img, (cx, cy), 12, (255, 0, 255), cv2.FILLED)
 
-        return self.lm_list
+            xMin, xMax = min(xList), max(xList)
+            yMin, yMax = min(yList), max(yList)
+            bbox = xMin, yMin, xMax, yMax
+
+            if bbox_draw:
+                cv2.rectangle(img, (bbox[0]-20, bbox[1]-20), (bbox[2]+20, bbox[3]+20), (0, 255, 0), 2)
+
+        return self.lm_list, bbox
 
     def fingers_up(self):
         ##############
@@ -88,6 +102,27 @@ class HandDetector:
                 fingers.append(0)
 
         return fingers
+
+    def find_distance(self, img, p1, p2, draw=True):
+        # Coordinates for Tip of Index and Thumb
+        x1, y1 = self.lm_list[p1][1], self.lm_list[p1][2]
+        x2, y2 = self.lm_list[p2][1], self.lm_list[p2][2]
+        # Coordinate of midpoint between those 2 points above
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+
+        if draw:
+            # Circles for Tip of Index and Thumb
+            cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
+            cv2.circle(img, (x2, y2), 15, (255, 0, 255), cv2.FILLED)
+            # Circle between Index Tip and Thumb Tip
+            cv2.circle(img, (cx, cy), 15, (255, 0, 255), cv2.FILLED)
+            # Line between Index Tip and Thumb Tip
+            cv2.line(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
+
+        # Length of the Line
+        length = math.hypot(x2 - x1, y2 - y1)
+
+        return img, length, [x1, y1, x2, y2, cx, cy]
 
     def detect_hand_type(self, flip=False):
         if self.lm_list[4][1] > self.lm_list[17][1]:
