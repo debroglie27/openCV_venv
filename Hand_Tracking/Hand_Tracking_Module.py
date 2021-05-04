@@ -6,9 +6,9 @@ import math
 
 
 class HandDetector:
-    def __init__(self, mode=False, detection_conf=0.5, track_conf=0.5):
+    def __init__(self, mode=False, max_hands=1, detection_conf=0.5, track_conf=0.5):
         self.mode = mode
-        self.maxHands = 1
+        self.maxHands = max_hands
         self.detectionConf = detection_conf
         self.trackConf = track_conf
 
@@ -104,20 +104,20 @@ class HandDetector:
         return fingers
 
     def find_distance(self, img, p1, p2, draw=True):
-        # Coordinates for Tip of Index and Thumb
+        # Coordinates for ids p1 and p2
         x1, y1 = self.lm_list[p1][1], self.lm_list[p1][2]
         x2, y2 = self.lm_list[p2][1], self.lm_list[p2][2]
         # Coordinate of midpoint between those 2 points above
         cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
 
         if draw:
-            # Circles for Tip of Index and Thumb
+            # Circles for ids p1 and p2
             cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
             cv2.circle(img, (x2, y2), 15, (255, 0, 255), cv2.FILLED)
-            # Circle between Index Tip and Thumb Tip
-            cv2.circle(img, (cx, cy), 15, (255, 0, 255), cv2.FILLED)
-            # Line between Index Tip and Thumb Tip
-            cv2.line(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
+            # Circle between ids p1 and p2
+            cv2.circle(img, (cx, cy), 15, (0, 0, 255), cv2.FILLED)
+            # Line between ids p1 and p2
+            cv2.line(img, (x1, y1), (x2, y2), (0, 0, 255), 3)
 
         # Length of the Line
         length = math.hypot(x2 - x1, y2 - y1)
@@ -146,7 +146,7 @@ def main():
         img = detector.find_hands(img)
 
         # list of all the hand landmarks along with position
-        lm_list = detector.find_position(img)
+        lm_list, bbox = detector.find_position(img)
         if len(lm_list) != 0:
             print(lm_list[4])
 
